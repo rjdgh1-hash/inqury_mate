@@ -604,7 +604,7 @@ body{font-family:var(--fb);color:var(--ink);background:var(--white);line-height:
       <div class="app-topbar">
         <div class="topbar-step" id="tb-step">단계 1 · 주제 선정</div>
         <div class="topbar-prog" id="tb-pills"></div>
-        <button class="topbar-apikey apikey-no" id="tb-apikey-btn" onclick="openApiKeyModal('settings')">🔑 API Key 설정</button>
+        <div id="tb-apikey-btn" style="font-size:12px;color:var(--muted)">✓ AI 연결됨</div>
       <div id="topbar-user-wrap"></div>
       </div>
       <div class="app-content" id="app-content"></div>
@@ -679,21 +679,25 @@ let obStep=1;
 const obData={grade:'',school:'',interests:[],experience:''};
 
 /* ── API ── */
+// Vercel 백엔드 URL - 배포 후 실제 URL로 변경
+const VERCEL_API_URL = 'https://inquirymate-api.vercel.app/api/chat';
+
 async function claude(system, user, tokens=900){
-  if(!S.apiKey) throw new Error('API Key가 없습니다. 상단의 🔑 버튼을 눌러 설정해 주세요.');
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':S.apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:tokens,system,messages:[{role:'user',content:user}]})
-  });
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||`API 오류 (${r.status})`);}
-  const d=await r.json();
-  return d.content?.[0]?.text||'';
+  try {
+    const r = await fetch(VERCEL_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system, user, max_tokens: tokens })
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.error||`서버 오류 (${r.status})`);
+    }
+    const d = await r.json();
+    return d.text || '';
+  } catch(e) {
+    throw new Error('AI 연결 오류: ' + e.message);
+  }
 }
 
 const SYS=`당신은 한국 고등학생 진학용 과제탐구를 돕는 AI 길잡이 InquiryMate입니다. 반드시 한국어로만 답변하세요.`;
@@ -856,7 +860,7 @@ function taCount(id){const e=document.getElementById(id);if(e){const c=document.
 
 /* AI HELP for textarea */
 async function aiHelpTa(id,prompt,applyFn){
-  if(!S.apiKey){alert('🔑 API Key를 먼저 설정해 주세요! 상단 버튼을 클릭하세요.');openApiKeyModal('settings');return;}
+  
   const btn=document.getElementById('btn-ta-'+id);
   const area=document.getElementById('aihelp-'+id);
   if(btn){btn.disabled=true;btn.textContent='⏳ 생성 중...';}
@@ -1035,7 +1039,7 @@ function saveStep(i){
   }
 }
 function goNext(from){
-  if(!S.apiKey&&from<5){if(!confirm('API Key 없이는 AI 기능을 쓸 수 없어요. 계속 진행하시겠어요?'))return;}
+  
   if(from===0&&!S.data.topic){alert('주제를 먼저 선택해 주세요!');return;}
   if(from===1){const q=document.getElementById('ta-q')?.value?.trim();if(!q){alert('탐구 질문을 입력해 주세요!');return;}S.data.question=q;}
   saveStep(from);
@@ -1047,7 +1051,7 @@ function goNext(from){
 
 /* ── AI ACTIONS ── */
 async function genTopics(){
-  if(!S.apiKey){alert('🔑 API Key를 먼저 설정해 주세요!');openApiKeyModal('settings');return;}
+  
   const kw=document.getElementById('ta-kw')?.value?.trim();
   if(!kw){alert('키워드를 먼저 입력해 주세요!');return;}
   S.data.keywords=kw;
@@ -1092,7 +1096,7 @@ function pickTopic(el,title){
 }
 
 async function refineQ(){
-  if(!S.apiKey){alert('🔑 API Key를 먼저 설정해 주세요!');openApiKeyModal('settings');return;}
+  
   const q=document.getElementById('ta-q')?.value?.trim();
   if(!q){alert('탐구 질문을 먼저 입력해 주세요!');return;}
   S.data.question=q;
@@ -1111,7 +1115,7 @@ async function refineQ(){
 }
 
 async function analyzeRes(){
-  if(!S.apiKey){alert('🔑 API Key를 먼저 설정해 주세요!');openApiKeyModal('settings');return;}
+  
   const r=document.getElementById('ta-res')?.value?.trim();
   if(!r){alert('자료를 먼저 입력해 주세요!');return;}
   S.data.research=r;
@@ -1130,7 +1134,7 @@ async function analyzeRes(){
 }
 
 async function polishReport(){
-  if(!S.apiKey){alert('🔑 API Key를 먼저 설정해 주세요!');openApiKeyModal('settings');return;}
+  
   const intro=document.getElementById('ta-intro')?.value||'';
   const body=document.getElementById('ta-body')?.value||'';
   const conc=document.getElementById('ta-conc')?.value||'';
@@ -1151,7 +1155,7 @@ async function polishReport(){
 }
 
 async function genAll(){
-  if(!S.apiKey){alert('🔑 API Key를 먼저 설정해 주세요!');openApiKeyModal('settings');return;}
+  
   const btn=document.getElementById('btn-genall');setBtn(btn,true,'⏳ 4종 산출물 생성 중 (약 40초)...');
   const box=document.getElementById('out-box');
   if(box)box.textContent='산출물을 생성하고 있어요... AI가 탐구 전 과정을 분석 중입니다. 잠시만 기다려 주세요.';
