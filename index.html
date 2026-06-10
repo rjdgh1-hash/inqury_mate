@@ -349,10 +349,19 @@ body{font-family:var(--fb);color:var(--ink);background:var(--white);line-height:
 </head>
 <body>
 
+<!-- ═══════════════ LOADING ═══════════════ -->
+<div id="page-loading">
+  <div class="load-logo">
+    <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+  </div>
+  <div class="load-text">InquiryMate</div>
+  <div class="load-sub">로그인 상태 확인 중...</div>
+</div>
+
 <!-- ═══════════════ FIREBASE SDK ═══════════════ -->
 <script type="module">
   import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import{getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import{getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const firebaseConfig={
     apiKey:"AIzaSyBqnGSgUSntTU7kq7XwBWB2J7NMXXChiUM",
@@ -371,11 +380,25 @@ body{font-family:var(--fb);color:var(--ink);background:var(--white);line-height:
   // 전역으로 내보내기
   window._fbAuth=auth;
   window._fbProvider=provider;
-  window._fbSignIn=()=>signInWithPopup(auth,provider);
+  window._fbSignIn=()=>signInWithRedirect(auth,provider);
+  // Handle redirect result on page load
+  getRedirectResult(auth).then((result)=>{
+    if(result&&result.user){
+      // redirect login succeeded - onAuthStateChanged will handle it
+    }
+  }).catch((error)=>{
+    if(error.code!=='auth/no-current-user'){
+      console.error('Redirect error:',error.code);
+    }
+  });
   window._fbSignOut=()=>signOut(auth);
 
   // 로그인 상태 감시
   onAuthStateChanged(auth,(user)=>{
+    // Hide loading screen
+    const loading = document.getElementById('page-loading');
+    if(loading) loading.style.display='none';
+    
     if(user){
       window._fbUser=user;
       document.getElementById('page-login').classList.add('hidden');
